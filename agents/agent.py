@@ -3,7 +3,7 @@ from numpy import ndarray
 from typing import Tuple, Optional
 from abc import ABC
 
-from environment.RL_api import RLApi
+from environment.base import Base
 
 class Agent(ABC):
 	def __init__(self, name: str):
@@ -13,21 +13,21 @@ class Agent(ABC):
 		self.action_space = None
 		self.n_blobs = 0
 
-	def setup(self, rl_api: RLApi, trained_model: Optional[str] = None):
+	def setup(self, base: Base, trained_model: Optional[str] = None):
 		"""
 		Creates the model and sets it up.
-		:param rl_api: the RL Api through which blobs are controlled
+		:param base: the RL Api through which blobs are controlled
 		:param trained_model: an optional file name of a model to load
 		"""
-		self.observation_space = (rl_api.surrounding_coords.shape[0], rl_api.surrounding_coords.shape[1], len(rl_api.perceived_objects))
+		self.observation_space = (base.surrounding_coords.shape[0], base.surrounding_coords.shape[1], len(base.perceived_objects))
 		self.agent_space = [2]
 		self.action_space = [2]
-		self.n_blobs = rl_api.blobs.n_blobs
+		self.n_blobs = base.blobs.n_blobs
 
-	def initialize(self, rl_api: RLApi):
+	def initialize(self, base: Base):
 		"""
 		Initializes the agents on a new environment (called at each new episode).
-		:param rl_api: the RL Api to access the environment
+		:param base: the RL Api to access the environment
 		"""
 		pass
 

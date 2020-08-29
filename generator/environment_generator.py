@@ -8,7 +8,7 @@ from environment.pheromone import Pheromone
 from environment.circle_obstacles import CircleObstacles
 from environment.walls import Walls
 from environment.food import Food
-from environment.RL_api import RLApi
+from environment.base import Base
 
 PHERO_COLORS = [
     (255, 64, 0),
@@ -43,7 +43,7 @@ class EnvironmentGenerator:
         self.surrounding_mask = new_mask
         self.surrounding_shift = new_shift
 
-    def generate(self, rl_api: RLApi):
+    def generate(self, base: Base):
         if self.seed is not None:
             random.seed(self.seed)
             np.random.seed(self.seed * 5)
@@ -92,8 +92,8 @@ class EnvironmentGenerator:
             blobs.register_pheromone(phero)
             perceived_objects.insert(p + 1, phero)
 
-        rl_api.register_blobs(blobs)
-        rl_api.setup_surrounding(self.surrounding_mask.shape[0] // 2,
+        base.register_blobs(blobs)
+        base.setup_surrounding(self.surrounding_mask.shape[0] // 2,
                                 perceived_objects,
                                 self.surrounding_mask,
                                 self.surrounding_shift)

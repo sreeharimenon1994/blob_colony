@@ -10,10 +10,10 @@ from torch.utils.data import Dataset, DataLoader
 
 from agents.agent import Agent
 from environment.pheromone import Pheromone
-from environment.RL_api import RLApi
+from environment.base import Base
 from agents.replay_memory import ReplayMemory
 
-MODEL_NAME = 'Collect_Agent_Memory'
+MODEL_NAME = 'Collect_Agent'
 
 REPLAY_MEMORY_SIZE = 50000
 MIN_REPLAY_MEMORY_SIZE = 1000
@@ -77,9 +77,9 @@ class CollectModelMemory(nn.Module):
         return rotation, pheromone, new_memory
 
 
-class CollectAgentMemory(Agent):
+class CollectAgent(Agent):
     def __init__(self, epsilon=0.1, discount=0.5, rotations=3, pheromones=3, learning_rate=1e-4):
-        super(CollectAgentMemory, self).__init__("collect_agent_memory")
+        super(CollectAgent, self).__init__("collect_agent")
 
         self.learning_rate = learning_rate
 
@@ -104,14 +104,14 @@ class CollectAgentMemory(Agent):
         self.agent_and_mem_space = None
         self.previous_memory = None
 
-    def setup(self, rl_api: RLApi, trained_model: Optional[str] = None):
-        super(CollectAgentMemory, self).setup(rl_api, trained_model)
+    def setup(self, base: Base, trained_model: Optional[str] = None):
+        super(CollectAgent, self).setup(base, trained_model)
 
-        self.previous_memory = torch.zeros((rl_api.blobs.n_blobs, self.mem_size))
+        self.previous_memory = torch.zeros((base.blobs.n_blobs, self.mem_size))
         self.agent_and_mem_space = [2 + self.mem_size]
 
         self.replay_memory = ReplayMemory(REPLAY_MEMORY_SIZE, self.observation_space, self.agent_and_mem_space, self.action_space)
-        self.state = torch.zeros([rl_api.blobs.n_blobs] + list(self.observation_space), dtype=torch.float32)
+        self.state = torch.zeros([base.blobs.n_blobs] + list(self.observation_space), dtype=torch.float32)
 
         # Main model
         self.model = CollectModelMemory(self.observation_space, self.agent_space, self.mem_size, self.rotations, self.pheromones)
@@ -125,9 +125,9 @@ class CollectAgentMemory(Agent):
         self.target_model.load_state_dict(self.model.state_dict())
         self.target_model.eval()
 
-    def initialize(self, rl_api: RLApi):
-        rl_api.blobs.activate_all_pheromones(
-            np.ones((self.n_blobs, len([obj for obj in rl_api.perceived_objects if isinstance(obj, Pheromone)]))) * 10)
+    def initialize(self, base: Base):
+        base.blobs.activate_all_pheromones(
+            np.ones((self.n_blobs, len([obj for obj in base.perceived_objects if isinstance(obj, Pheromone)]))) * 10)
 
     def train(self, done: bool, step: int) -> float:
         # Start training only if certain number of samples is already saved

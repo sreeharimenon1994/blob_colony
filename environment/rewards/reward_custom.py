@@ -40,9 +40,9 @@ class Food_Reward(Reward):
         self.blobs_holding = agent_state[:, 0]
 
 
-class All_Rewards(Reward):
+class Main_Rewards(Reward):
     def __init__(self, fct_explore=1, fct_food=1, fct_anthill=5, fct_explore_holding=0, fct_headinganthill=1):
-        super(All_Rewards, self).__init__()
+        super(Main_Rewards, self).__init__()
         self.explored_map = None
         self.fct_explore = fct_explore
         self.fct_food = fct_food
@@ -61,7 +61,7 @@ class All_Rewards(Reward):
 
 
     def setup(self, blobs: Blobs):
-        super(All_Rewards, self).setup(blobs)
+        super(Main_Rewards, self).setup(blobs)
         self.rewards = self.blobs.holding
         self.blobs_holding = self.blobs.holding
         self.explored_map = np.zeros((self.environment.w, self.environment.h), dtype=bool)

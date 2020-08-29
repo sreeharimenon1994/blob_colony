@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-from environment.RL_api import RLApi
+from environment.base import Base
 from generator.environment_generator import EnvironmentGenerator
 from generator.map_generators import *
-from environment.rewards.reward_custom import *
-from agents.collect_agent_memory import CollectAgentMemory
+from environment.rewards.reward_custom import Main_Rewards
+from agents.collect_agent import CollectAgent
 import gc
 import time
 
@@ -36,19 +36,18 @@ class AnimatedScatter(object):
         """Generate a random walk (brownian motion). Data is scaled to produce
         a soft "flickering" effect."""
 
-        model_path = '23_8_21.h5'
-        # model_path = '23-8-9.pt'
+        model_path = '28-8-2.pt'
 
         n_blobs = 15
 
-        reward_funct = All_Rewards(fct_explore=1, fct_food=2, fct_anthill=10, fct_explore_holding=1, fct_headinganthill=3)
+        reward_funct = Main_Rewards(fct_explore=1, fct_food=2, fct_anthill=10, fct_explore_holding=1, fct_headinganthill=3)
 
-        api = RLApi(reward=reward_funct, reward_threshold=1, max_speed=1, max_rot_speed=40 / 180 * np.pi,
+        api = Base(reward=reward_funct, reward_threshold=1, max_speed=1, max_rot_speed=40 / 180 * np.pi,
                     carry_speed_reduction=0.05, backward_speed_reduction=0.5)
 
         api.save_perceptive_field = False
 
-        agent = CollectAgentMemory(epsilon=0.01, discount=0.99, rotations=3, pheromones=3, learning_rate=0.00001)
+        agent = CollectAgent(epsilon=0.01, discount=0.99, rotations=3, pheromones=3, learning_rate=0.00001)
 
         generator = EnvironmentGenerator(w=200, h=200, n_blobs=n_blobs, n_pheromones=2, n_rocks=0,
                                          food_generator=CirclesGenerator(20, 5, 10),

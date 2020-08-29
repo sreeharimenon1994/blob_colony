@@ -19,7 +19,7 @@ class RLVisualization(EnvObject):
         self.heatmap = heatmap
 
 
-class RLApi (EnvObject):
+class Base(EnvObject):
     def __init__(self, reward: Reward, reward_threshold: float, max_speed: float, max_rot_speed: float, carry_speed_reduction: float, backward_speed_reduction: float):
         """ Initializes an RL API. Call register_blobs to register this API to a group of blobs and its environment.
         :param max_speed: The maximum forward and backward speed at which blobs can move.
