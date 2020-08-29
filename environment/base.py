@@ -6,7 +6,7 @@ from environment.pheromone import Pheromone
 from environment.food import Food
 from environment.blobs import Blobs
 from environment.walls import Walls
-from environment.circle_obstacles import CircleObstacles
+from environment.circle_pattern import CirclePattern
 from environment.anthill import Anthill
 from environment.rewards.reward import Reward
 
@@ -46,7 +46,7 @@ class Base(EnvObject):
         self.backward_speed_reduction = backward_speed_reduction
 
         # If set to True, will save the perceptive field of each ant as an image to display over environment during visualization.
-        self.save_perceptive_field = False
+        self.perceptive_field_save = False
         self.perceptive_field = None
 
 
@@ -118,7 +118,7 @@ class Base(EnvObject):
                 surrounding[:, :, :, i] = obj.map[abs_pos[:, :, :, 0], abs_pos[:, :, :, 1]]
             elif isinstance(obj, Anthill):
                 surrounding[:, :, :, i] = obj.area[abs_pos[:, :, :, 0], abs_pos[:, :, :, 1]]
-            elif isinstance(obj, CircleObstacles):
+            elif isinstance(obj, CirclePattern):
                 vecs = abs_pos[:, :, :, axis, :] - obj.centers[axis, axis, axis, :, :]
                 dists = np.sum(vecs**2, axis=4)**0.5
                 surrounding[:, :, :, i] = np.max(dists < obj.radiuses, axis=3)
@@ -130,15 +130,15 @@ class Base(EnvObject):
                 blobs_map[blobs_xy[:, 0], blobs_xy[:, 1]] += 1
                 surrounding[:, :, :, i] = blobs_map[abs_pos[:, :, :, 0], abs_pos[:, :, :, 1]]
 
-        if self.save_perceptive_field:
+        if self.perceptive_field_save:
             self.perceptive_field = np.zeros((self.environment.w, self.environment.h), dtype=bool)
 
         if self.surrounding_mask is not None:
             surrounding = self.surrounding_mask[axis, :, :, axis] * (surrounding + 1) - 1
 
-            if self.save_perceptive_field:
+            if self.perceptive_field_save:
                 self.perceptive_field[abs_pos[:, self.surrounding_mask, 0], abs_pos[:, self.surrounding_mask, 1]] = True
-        elif self.save_perceptive_field:
+        elif self.perceptive_field_save:
             self.perceptive_field[abs_pos[:, :, :, 0], abs_pos[:, :, :, 1]] = True
 
         state = np.zeros((len(self.blobs.blobs), 2 + len(self.blobs.pheromones)))

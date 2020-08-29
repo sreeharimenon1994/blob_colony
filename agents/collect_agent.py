@@ -20,9 +20,9 @@ MIN_REPLAY_MEMORY_SIZE = 1000
 MINIBATCH_SIZE = 264
 UPDATE_TARGET_EVERY = 1
 
-class CollectModelMemory(nn.Module):
+class Model(nn.Module):
     def __init__(self, observation_space, agent_space, mem_size, rotations, pheromones):
-        super(CollectModelMemory, self).__init__()
+        super(Model, self).__init__()
 
         self.input_size = 1
         for dim in observation_space:
@@ -78,13 +78,13 @@ class CollectModelMemory(nn.Module):
 
 
 class CollectAgent(Agent):
-    def __init__(self, epsilon=0.1, discount=0.5, rotations=3, pheromones=3, learning_rate=1e-4):
+    def __init__(self, epsilon=0.1, dis=0.5, rotations=3, pheromones=3, lr=1e-4):
         super(CollectAgent, self).__init__("collect_agent")
 
-        self.learning_rate = learning_rate
+        self.lr = lr
 
         self.epsilon = epsilon
-        self.discount = discount
+        self.dis = dis
         self.rotations = rotations
         self.pheromones = pheromones
 
@@ -114,10 +114,10 @@ class CollectAgent(Agent):
         self.state = torch.zeros([base.blobs.n_blobs] + list(self.observation_space), dtype=torch.float32)
 
         # Main model
-        self.model = CollectModelMemory(self.observation_space, self.agent_space, self.mem_size, self.rotations, self.pheromones)
-        self.target_model = CollectModelMemory(self.observation_space, self.agent_space, self.mem_size, self.rotations, self.pheromones)
+        self.model = Model(self.observation_space, self.agent_space, self.mem_size, self.rotations, self.pheromones)
+        self.target_model = Model(self.observation_space, self.agent_space, self.mem_size, self.rotations, self.pheromones)
         self.criterion = nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
         if trained_model is not None:
             self.load_model(trained_model)
@@ -129,44 +129,37 @@ class CollectAgent(Agent):
         base.blobs.activate_all_pheromones(
             np.ones((self.n_blobs, len([obj for obj in base.perceived_objects if isinstance(obj, Pheromone)]))) * 10)
 
-    def train(self, done: bool, step: int) -> float:
+    def train(self, itr_done: bool, step: int) -> float:
         # Start training only if certain number of samples is already saved
         if len(self.replay_memory) < MIN_REPLAY_MEMORY_SIZE:
             return 0
 
-        # Get a minibatch from replay memory
-        mem_states, mem_agent_state, mem_actions, mem_rewards, mem_new_states, mem_new_agent_state, mem_done = self.replay_memory.random_access(
-            MINIBATCH_SIZE)
+        states, agent_state, actions, rewards, new_states, new_agent_state, done = self.replay_memory.random_access(MINIBATCH_SIZE)
 
         with torch.no_grad():
-            # Predicting actions (we don't use agent's memory)
-            future_qs_rotation, future_qs_pheromones, _ = self.target_model(mem_new_states, mem_new_agent_state)
-            target_qs_rotation, target_qs_pheromones, _ = self.model(mem_states, mem_agent_state)
+            rotation_t, pheromones_t, _ = self.target_model(new_states, new_agent_state)
+            rotation, pheromones, _ = self.model(states, agent_state)
 
-            # Update Q value for rotation
-            max_future_qs = torch.max(future_qs_rotation, dim=1).values
-            new_qs = mem_rewards + self.discount * max_future_qs * ~mem_done
-            target_qs_rotation[np.arange(len(target_qs_rotation)), mem_actions[:, 0].tolist()] = new_qs[np.arange(len(target_qs_rotation))]
+            rotation_t = torch.max(rotation_t, dim=1).values
+            tmp = rewards + self.dis * rotation_t * ~done
+            rotation[np.arange(len(rotation)), actions[:, 0].tolist()] = tmp[np.arange(len(rotation))]
 
-            # Update Q value for pheromones
-            max_future_qs = torch.max(future_qs_pheromones, dim=1).values
-            new_qs = mem_rewards + self.discount * max_future_qs * ~mem_done
-            target_qs_pheromones[np.arange(len(target_qs_pheromones)), mem_actions[:, 1].tolist()] = new_qs[np.arange(len(target_qs_pheromones))]
+            pheromones_t = torch.max(pheromones_t, dim=1).values
+            tmp = rewards + self.dis * pheromones_t * ~done
+            pheromones[np.arange(len(pheromones)), actions[:, 1].tolist()] = tmp[np.arange(len(pheromones))]
 
-        output = self.model(mem_states, mem_agent_state)
-        loss_rotation = self.criterion(output[0], target_qs_rotation)
-        loss_pheromones = self.criterion(output[1], target_qs_pheromones)
-        loss = loss_rotation + loss_pheromones
+        output = self.model(states, agent_state)
+        loss_r = self.criterion(output[0], rotation)
+        loss_pher = self.criterion(output[1], pheromones)
+        loss = loss_r + loss_pher
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        # Update target network counter every episode
-        if done:
+        if itr_done:
             self.update_target += 1
 
-        # If counter reaches set value, update target network with weights of main network
         if self.update_target >= UPDATE_TARGET_EVERY:
             self.target_model.load_state_dict(self.model.state_dict())
             self.target_model.eval()

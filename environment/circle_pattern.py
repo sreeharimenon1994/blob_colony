@@ -5,7 +5,7 @@ from typing import List, Tuple
 axis = np.newaxis
 
 
-class CircleObstaclesVisualization (EnvObject):
+class CirclePatternVisualization (EnvObject):
     def __init__(self, env, centers, rad, weights):
         super().__init__(env)
         self.centers = centers.copy()
@@ -13,7 +13,7 @@ class CircleObstaclesVisualization (EnvObject):
         self.weights = weights.copy()
 
 
-class CircleObstacles (EnvObject):
+class CirclePattern (EnvObject):
     def __init__(self, environment: Environment, centers, rad, weights):
         super().__init__(environment)
         self.w = environment.w
@@ -28,7 +28,7 @@ class CircleObstacles (EnvObject):
         self.crossed_weights = self.weights[axis, :] / (self.weights[:, axis] + self.weights[axis, :])
 
     def visualize_copy(self, newenv):
-        return CircleObstaclesVisualization(newenv, self.centers, self.rad, self.weights)
+        return CirclePatternVisualization(newenv, self.centers, self.rad, self.weights)
 
     def update(self):
         for obj in self.environment.objects:

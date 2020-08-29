@@ -1,11 +1,10 @@
 import random
-from utils import *
-
+import numpy as np
 from environment.environment import Environment
 from environment.anthill import Anthill
 from environment.blobs import Blobs
 from environment.pheromone import Pheromone
-from environment.circle_obstacles import CircleObstacles
+from environment.circle_pattern import CirclePattern
 from environment.walls import Walls
 from environment.food import Food
 from environment.base import Base
@@ -17,13 +16,13 @@ PHERO_COLORS = [
 ]
 
 class EnvironmentGenerator:
-    def __init__(self, w, h, n_blobs, n_pheromones, n_rocks, food_generator, walls_generator, max_steps, seed=None):
+    def __init__(self, w, h, n_blobs, n_pheromones, n_rocks, food_gen, walls_generator, max_steps, seed=None):
         self.w = w
         self.h = h
         self.n_blobs = n_blobs
         self.n_pheromones = n_pheromones
         self.n_rocks = n_rocks
-        self.food_generator = food_generator
+        self.food_gen = food_gen
         self.walls_generator = walls_generator
 
         self.surrounding_mask = np.array([[0, 0, 1, 1, 1, 0, 0],
@@ -62,7 +61,7 @@ class EnvironmentGenerator:
         walls = Walls(env, world_walls)
         perceived_objects.append(walls)
 
-        food = Food(env, self.food_generator.generate(self.w, self.h))
+        food = Food(env, self.food_gen.generate(self.w, self.h))
         food.qte *= (1 - walls.map)
         perceived_objects.append(food)
 
@@ -73,7 +72,7 @@ class EnvironmentGenerator:
             rock_centers[:, 1] *= self.h * 0.25
             rock_centers[:, 0] += self.w * 0.25
             rock_centers[:, 1] += self.h * 0.25
-            rocks = CircleObstacles(env, centers=rock_centers,
+            rocks = CirclePattern(env, centers=rock_centers,
                                     radiuses=np.random.random(n_rocks) * 5 + 5,
                                     weights=np.random.random(n_rocks) * 50 + 50)
             perceived_objects.append(rocks)

@@ -3,19 +3,38 @@ from environment.base import Base
 from generator.environment_generator import EnvironmentGenerator
 from generator.map_generators import *
 from environment.rewards.reward_custom import Main_Rewards
-from utils import plot_training
 from agents.collect_agent import CollectAgent
 from tqdm import tqdm
+import numpy as np
 import datetime
 import time
 import math
 import gc
-save_model = True
+import matplotlib.pyplot as plt
 
+
+save_model = True
 epochs = 100
 steps = 2000
 epsilon_min = 0.01
 epsilon_max = 1
+
+
+def plot_graph(reward, loss):
+    plt.style.use('seaborn-darkgrid')
+    fig = plt.figure(figsize=(100, 300))
+    ax = fig.add_subplot(211)
+    ax.plot(reward, color='blue')
+    ax.set(title="Mean reward/episode",
+           ylabel="Reward",
+           xlabel="Epoch")
+
+    bx = fig.add_subplot(212)
+    bx.plot(loss, color='red')
+    bx.set(title="Mean loss/episode",
+           ylabel="Loss",
+           xlabel="Epoch")
+    plt.show()
 
 def main():
     states = []
@@ -26,24 +45,19 @@ def main():
     api = Base(reward=reward_funct, reward_threshold=1, max_speed=1, max_rot_speed=40 / 180 * np.pi,
                 carry_speed_reduction=0.05, backward_speed_reduction=0.5)
 
-    api.save_perceptive_field = True
+    api.perceptive_field_save = True
 
-    agent = CollectAgent(epsilon=0.9, discount=0.99, rotations=3, pheromones=3, learning_rate=0.00001)
-
+    agent = CollectAgent(epsilon=0.9, dis=0.99, rotations=3, pheromones=3, lr=0.00001)
     agent_setup_once = True
-
-    avg_loss = 0
-    avg_time = None
-
+    loss_avg = 0
     all_loss = []
     all_reward = []
 
-    print("Simulating...")
     for epoch in range(epochs):
 
         generator = EnvironmentGenerator(w=200, h=200, n_blobs=n_blobs, n_pheromones=2, n_rocks=0,
-                                         food_generator=CirclesGenerator(20, 5, 10),
-                                         walls_generator=PerlinGenerator(scale=22.0, density=0.3),
+                                         food_gen=CirclesGen(20, 5, 10),
+                                         walls_generator=PerlinGen(scale=22.0, density=0.3),
                                          max_steps=steps, seed=None)
 
         env = generator.generate(api)
@@ -68,10 +82,10 @@ def main():
             agent.update_replay_memory(obs, agent_state, action, reward, new_state, new_agent_state, done)
 
             loss = agent.train(done, s)
-            if avg_loss == 0:
-                avg_loss = loss
+            if loss_avg == 0:
+                loss_avg = loss
             else:
-                avg_loss = 0.99 * avg_loss + 0.01 * loss
+                loss_avg = 0.99 * loss_avg + 0.01 * loss
 
             mean_reward = epoch_reward.mean(axis=0)
             # Set obs to the new state
@@ -79,11 +93,10 @@ def main():
             agent_state = new_agent_state
 
             env.update()
-        
 
         gc.collect()
         agent.epsilon = max(epsilon_min,  min(epsilon_max, 1.0 - math.log10((epoch+1)/2)))
-        all_loss.append(avg_loss)
+        all_loss.append(loss_avg)
         all_reward.append(mean_reward)
 
     if save_model:
@@ -91,14 +104,8 @@ def main():
         model_name = str(date.day) + '-' + str(date.month) + '-' + str(date.hour) + '.pt'
         agent.save_model(model_name)
         
-    plot_training(all_reward, all_loss)
-
-
+    plot_graph(all_reward, all_loss)
 
 
 if __name__ == '__main__':
     main()
-
-# visualiser = Visualizer()
-# visualiser.big_dim = 900
-# visualiser.visualize(save_file_name)

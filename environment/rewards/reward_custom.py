@@ -15,10 +15,8 @@ class ExplorationReward(Reward):
         self.explored_map = np.zeros((self.environment.w, self.environment.h), dtype=bool)
 
     def observation(self, obs_coords, surrounding, agent_state):
-        # Computing how many new blocks were explored by each ant
+    
         self.rewards = np.sum(1 - self.explored_map[obs_coords[:, :, :, 0], obs_coords[:, :, :, 1]], axis=(1, 2)) / 10
-
-        # Writing exploration to exploration map
         self.explored_map[obs_coords[:, :, :, 0], obs_coords[:, :, :, 1]] = True
 
     def visualization(self):
@@ -36,7 +34,6 @@ class Food_Reward(Reward):
 
     def observation(self, obs_coords, surrounding, agent_state):
         self.rewards = agent_state[:, 0] - self.blobs_holding
-        self.rewards[self.rewards < 0] = 10  # Deals with negative rewards when blobs drops the food
         self.blobs_holding = agent_state[:, 0]
 
 
@@ -84,19 +81,14 @@ class Main_Rewards(Reward):
         self.blobs_holding = agent_state[:, 0]
 
         if self.fct_explore != 0 or self.fct_explore_holding != 0:
-            # Computing how many new blocks were explored by each ant
             rewards_explore = np.sum(1 - self.explored_map[obs_coords[:, :, :, 0], obs_coords[:, :, :, 1]],
                                           axis=(1, 2)) / 10
             rewards_explore = np.array([r * self.fct_explore if h == 0 else r * self.fct_explore_holding for r, h in zip(rewards_explore, self.blobs_holding)])
-            # Writing exploration to exploration map
             self.explored_map[obs_coords[:, :, :, 0], obs_coords[:, :, :, 1]] = True
             self.rewards += rewards_explore
 
-        # Reward anthill
         rewards_anthill[rewards_anthill > 0] = 0
         rewards_anthill[rewards_anthill < 0] = 1
-
-        #Heading anthill
 
         new_dist = self.compute_distance(self.blobs.x, self.blobs.y)
         self.rewards_anthillheading = (self.previous_dist > new_dist) * (self.blobs.holding > 0) * 0.1

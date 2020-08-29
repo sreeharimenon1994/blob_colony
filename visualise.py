@@ -51,7 +51,7 @@ class AnimatedScatter(object):
 
         generator = EnvironmentGenerator(w=200, h=200, n_blobs=n_blobs, n_pheromones=2, n_rocks=0,
                                          food_generator=CirclesGenerator(20, 5, 10),
-                                         walls_generator=PerlinGenerator(scale=22.0, density=0.3),
+                                         walls_generator=PerlinGen(scale=22.0, density=0.3),
                                          max_steps=2000, seed=None)
 
         env = generator.generate(api)
