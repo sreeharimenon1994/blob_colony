@@ -1,4 +1,3 @@
-
 from environment.base import Base
 from generator.environment_generator import EnvironmentGenerator
 from generator.map_generators import *
@@ -7,7 +6,6 @@ from agents.collect_agent import CollectAgent
 from tqdm import tqdm
 import numpy as np
 import datetime
-import time
 import math
 import gc
 import matplotlib.pyplot as plt
@@ -36,11 +34,12 @@ def plot_graph(reward, loss):
            xlabel="Epoch")
     plt.show()
 
+
 def main():
     states = []
     n_blobs = 40
 
-    reward_funct = Main_Rewards(fct_explore=1, fct_food=2, fct_anthill=10, fct_explore_holding=1, fct_headinganthill=3)
+    reward_funct = Main_Rewards(fct_explore=1, fct_food=2, fct_home=10, fct_explore_holding=1, fct_headinghome=3)
 
     api = Base(reward=reward_funct, reward_threshold=1, max_speed=1, max_rot_speed=40 / 180 * np.pi,
                 carry_speed_reduction=0.05, backward_speed_reduction=0.5)
@@ -91,13 +90,12 @@ def main():
             # Set obs to the new state
             obs = new_state
             agent_state = new_agent_state
-
             env.update()
 
-        gc.collect()
-        agent.epsilon = max(epsilon_min,  min(epsilon_max, 1.0 - math.log10((epoch+1)/2)))
         all_loss.append(loss_avg)
         all_reward.append(mean_reward)
+        agent.epsilon = max(epsilon_min,  min(epsilon_max, 1.0 - math.log10((epoch+1)/2)))
+        gc.collect()
 
     if save_model:
         date = datetime.datetime.now()

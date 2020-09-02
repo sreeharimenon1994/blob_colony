@@ -37,7 +37,6 @@ class Blobs(EnvObject):
         self.holding = np.zeros(n_blobs)
         self.reward_state = np.zeros(n_blobs, dtype=np.uint8)
 
-        # Random seed specific to each ant:
         self.seed = np.random.random(n_blobs)
 
     def visualize_copy(self, newenv):

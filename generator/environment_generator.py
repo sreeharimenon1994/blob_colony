@@ -1,7 +1,7 @@
 import random
 import numpy as np
 from environment.environment import Environment
-from environment.anthill import Anthill
+from environment.home import Home
 from environment.blobs import Blobs
 from environment.pheromone import Pheromone
 from environment.circle_pattern import CirclePattern
@@ -50,14 +50,14 @@ class EnvironmentGenerator:
         env = Environment(self.w, self.h, self.max_steps)
         perceived_objects = []
 
-        anthill = Anthill(env,
+        home = Home(env,
                           int(random.random() * self.w * 0.5 + self.w * 0.25),
                           int(random.random() * self.h * 0.5 + self.h * 0.25),
                           int(random.random() * min(self.w, self.h) * 0.05 + min(self.w, self.h) * 0.05))
-        perceived_objects.append(anthill)
+        perceived_objects.append(home)
 
         world_walls = self.walls_generator.generate(self.w, self.h)
-        world_walls[anthill.area] = False
+        world_walls[home.area] = False
         walls = Walls(env, world_walls)
         perceived_objects.append(walls)
 
@@ -78,9 +78,9 @@ class EnvironmentGenerator:
             perceived_objects.append(rocks)
 
         blobs_angle = np.random.random(self.n_blobs) * 2 * np.pi
-        blobs_dist = np.random.random(self.n_blobs) * anthill.radius * 0.8
-        blobs_x = np.cos(blobs_angle) * blobs_dist + anthill.x
-        blobs_y = np.sin(blobs_angle) * blobs_dist + anthill.y
+        blobs_dist = np.random.random(self.n_blobs) * home.radius * 0.8
+        blobs_x = np.cos(blobs_angle) * blobs_dist + home.x
+        blobs_y = np.sin(blobs_angle) * blobs_dist + home.y
         blobs_t = np.random.random(self.n_blobs) * 2 * np.pi
 
         blobs = Blobs(env, self.n_blobs, 5, xyt=np.array([blobs_x, blobs_y, blobs_t]).T)

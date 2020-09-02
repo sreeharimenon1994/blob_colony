@@ -1,7 +1,7 @@
 import numpy as np
 
 from environment.blobs import Blobs
-from environment.anthill import Anthill
+from environment.home import Home
 from environment.rewards.reward import Reward
 
 
@@ -38,23 +38,23 @@ class Food_Reward(Reward):
 
 
 class Main_Rewards(Reward):
-    def __init__(self, fct_explore=1, fct_food=1, fct_anthill=5, fct_explore_holding=0, fct_headinganthill=1):
+    def __init__(self, fct_explore=1, fct_food=1, fct_home=5, fct_explore_holding=0, fct_headinghome=1):
         super(Main_Rewards, self).__init__()
         self.explored_map = None
         self.fct_explore = fct_explore
         self.fct_food = fct_food
-        self.fct_anthill = fct_anthill
+        self.fct_home = fct_home
         self.fct_explore_holding = fct_explore_holding
-        self.fct_headinganthill = fct_headinganthill
+        self.fct_headinghome = fct_headinghome
 
         self.previous_dist = None
-        self.anthill_x = 0
-        self.anthill_y = 0
+        self.home_x = 0
+        self.home_y = 0
 
         self.blobs_holding = None
 
     def compute_distance(self, x, y):
-        return ((x - self.anthill_x) ** 2 + (y - self.anthill_y) ** 2) ** 0.5
+        return ((x - self.home_x) ** 2 + (y - self.home_y) ** 2) ** 0.5
 
 
     def setup(self, blobs: Blobs):
@@ -62,13 +62,13 @@ class Main_Rewards(Reward):
         self.rewards = self.blobs.holding
         self.blobs_holding = self.blobs.holding
         self.explored_map = np.zeros((self.environment.w, self.environment.h), dtype=bool)
-        self.rewards_anthillheading = np.zeros(blobs.n_blobs)
+        self.rewards_homeheading = np.zeros(blobs.n_blobs)
         self.blobs = blobs
 
         for obj in blobs.environment.objects:
-            if isinstance(obj, Anthill):
-                self.anthill_x = obj.x
-                self.anthill_y = obj.y
+            if isinstance(obj, Home):
+                self.home_x = obj.x
+                self.home_y = obj.y
 
         self.previous_dist = self.compute_distance(blobs.x, blobs.y)
 
@@ -76,7 +76,7 @@ class Main_Rewards(Reward):
         self.rewards = np.zeros_like(self.rewards)
 
         rewards_food = agent_state[:, 0] - self.blobs_holding
-        rewards_anthill = rewards_food.copy()
+        rewards_home = rewards_food.copy()
         rewards_food[rewards_food < 0] = 0
         self.blobs_holding = agent_state[:, 0]
 
@@ -87,14 +87,14 @@ class Main_Rewards(Reward):
             self.explored_map[obs_coords[:, :, :, 0], obs_coords[:, :, :, 1]] = True
             self.rewards += rewards_explore
 
-        rewards_anthill[rewards_anthill > 0] = 0
-        rewards_anthill[rewards_anthill < 0] = 1
+        rewards_home[rewards_home > 0] = 0
+        rewards_home[rewards_home < 0] = 1
 
         new_dist = self.compute_distance(self.blobs.x, self.blobs.y)
-        self.rewards_anthillheading = (self.previous_dist > new_dist) * (self.blobs.holding > 0) * 0.1
+        self.rewards_homeheading = (self.previous_dist > new_dist) * (self.blobs.holding > 0) * 0.1
         self.previous_dist = new_dist
 
-        self.rewards += rewards_food * self.fct_food + rewards_anthill * self.fct_anthill + self.rewards_anthillheading * self.fct_headinganthill
+        self.rewards += rewards_food * self.fct_food + rewards_home * self.fct_home + self.rewards_homeheading * self.fct_headinghome
 
     def visualization(self):
         return self.explored_map.copy()

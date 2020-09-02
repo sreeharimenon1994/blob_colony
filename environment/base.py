@@ -7,7 +7,7 @@ from environment.food import Food
 from environment.blobs import Blobs
 from environment.walls import Walls
 from environment.circle_pattern import CirclePattern
-from environment.anthill import Anthill
+from environment.home import Home
 from environment.rewards.reward import Reward
 
 axis = np.newaxis
@@ -21,12 +21,7 @@ class RLVisualization(EnvObject):
 
 class Base(EnvObject):
     def __init__(self, reward: Reward, reward_threshold: float, max_speed: float, max_rot_speed: float, carry_speed_reduction: float, backward_speed_reduction: float):
-        """ Initializes an RL API. Call register_blobs to register this API to a group of blobs and its environment.
-        :param max_speed: The maximum forward and backward speed at which blobs can move.
-        :param max_rot_speed: The maximum number of radians blobs can turn at each step.
-        :param carry_speed_reduction: How much one unit of carried food reduces the max speed (cumulative factor).
-        :param backward_speed_reduction: How much moving backward reduces the max speed (factor).
-        """
+        
         super().__init__(None)
         self.reward = reward
         self.reward_threshold = reward_threshold
@@ -45,7 +40,6 @@ class Base(EnvObject):
         self.carry_speed_reduction = carry_speed_reduction
         self.backward_speed_reduction = backward_speed_reduction
 
-        # If set to True, will save the perceptive field of each ant as an image to display over environment during visualization.
         self.perceptive_field_save = False
         self.perceptive_field = None
 
@@ -67,39 +61,31 @@ class Base(EnvObject):
 
 
     def setup_surrounding(self, radius: int, objects: List[EnvObject], mask=None, forward_delta=0):
-        """Setups surrounding parameters for the group of blobs.
-        :param radius: Number of grid units the ant can see around itself.
-        :param objects: List of environment objects the ant can perceive (= surrounding channels).
-        :param mask: Square boolean matrix of side 2*radius+1, to mask certain grid units around the ant.
-        :param forward_delta: How much should the perceptive field be shifted in front of the ant."""
+
         self.surrounding_radius = radius
         self.surrounding_mask = mask
         self.perceived_objects = objects
         self.surrounding_fwd_delta = forward_delta
 
-        # Constructing relative grid coordinates of perceived slots in grid (2*radius+1, 2*radius+1, 2)
         self.surrounding_coords = np.dstack([np.arange(-radius, radius+1)[axis, :].repeat(2*radius+1, 0), np.arange(-radius, radius+1)[:, axis].repeat(2*radius+1, 1)]).astype(float)
         self.surrounding_coords *= DELTA
 
 
     def observation(self):
-        """Performs an observation on the environment, by each individual ant, looking in front of itself.
-        :return (n_blobs, 2*radius+1, 2*radius+1, n_objects) numpy array, with -1 where the ant can't see because of the mask.
-        :return (n_blobs, 2 + n_phero) numpy array describing the state of the ant, with [mandibles' state, held food, pheromone activation 1, phero act 2...]."""
         xy_f = self.blobs.xy.copy()
         t_f = self.blobs.theta + np.pi * 0.5
 
         if self.surrounding_fwd_delta != 0:
             xy_f += np.array([np.cos(self.blobs.theta), np.sin(self.blobs.theta)]).T * self.surrounding_fwd_delta
 
-        # Rotating the surrounding grid based on each individual ant's theta orientation
+        # Rotating the surrounding grid based on each individual blob's theta orientation
         cos_t = np.cos(t_f)
         sin_t = np.sin(t_f)
         relative_pos = self.surrounding_coords[axis, :, :].repeat(len(self.blobs.blobs), 0)
         relative_pos[:, :, :, 0], relative_pos[:, :, :, 1] = cos_t[:, axis, axis] * relative_pos[:, :, :, 0] - sin_t[:, axis, axis] * relative_pos[:, :, :, 1], \
                                                                    sin_t[:, axis, axis] * relative_pos[:, :, :, 0] + cos_t[:, axis, axis] * relative_pos[:, :, :, 1]
 
-        # Adding individual ant's position to relative coordinates
+        # Adding individual blob's position to relative coordinates
         abs_pos = relative_pos + xy_f[:, axis, axis, :]
 
         # Rounding to integer grid coordinates and warping to other side of the map if too big/too small
@@ -116,7 +102,7 @@ class Base(EnvObject):
                 surrounding[:, :, :, i] = obj.qte[abs_pos[:, :, :, 0], abs_pos[:, :, :, 1]]
             elif isinstance(obj, Walls):
                 surrounding[:, :, :, i] = obj.map[abs_pos[:, :, :, 0], abs_pos[:, :, :, 1]]
-            elif isinstance(obj, Anthill):
+            elif isinstance(obj, Home):
                 surrounding[:, :, :, i] = obj.area[abs_pos[:, :, :, 0], abs_pos[:, :, :, 1]]
             elif isinstance(obj, CirclePattern):
                 vecs = abs_pos[:, :, :, axis, :] - obj.centers[axis, axis, axis, :, :]
@@ -155,21 +141,14 @@ class Base(EnvObject):
 
 
     def step(self, rotation: Optional[ndarray], on_off_pheromones: Optional[ndarray]):
-        """ Applies the different ant actions to the ant group. A None action won't change the state of blobs.
-        :param rotation: How much the ant should turn right, will be multiplied by max_rot_speed
-        :param open_close_mandibles: Are the mandibles opened or closed
-        :param on_off_pheromones: Are the pheromones activated or not
-        """
-        open_close_mandibles = None
-        #if open_close_mandibles is not None:
-            #self.blobs.update_mandibles(open_close_mandibles)
 
+        open_close_mandibles = None
         xy = self.blobs.prev_blobs[:, 0:2].astype(int)
         open_close_mandibles = self.blobs.mandibles.copy()
         for i, obj in enumerate(self.perceived_objects):
             if isinstance(obj, Food):
                 open_close_mandibles = np.bitwise_or(obj.qte[xy[:, 0], xy[:, 1]] > 0, open_close_mandibles)
-            elif isinstance(obj, Anthill):
+            elif isinstance(obj, Home):
                 open_close_mandibles = np.bitwise_and(1 - obj.area[self.blobs.x.astype(int), self.blobs.y.astype(int)], open_close_mandibles)
         self.blobs.update_mandibles(open_close_mandibles)
 

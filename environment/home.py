@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from .environment import Environment, EnvObject
 from .food import Food
 
-class AnthillVisualization (EnvObject):
+class HomeVisualization (EnvObject):
 	def __init__(self, env, x, y, radius, food):
 		super().__init__(env)
 		self.x = x
@@ -13,7 +13,7 @@ class AnthillVisualization (EnvObject):
 		self.radius = radius
 		self.food = food
 
-class Anthill (EnvObject):
+class Home (EnvObject):
 	def __init__(self, environment: Environment, x, y, radius):
 		super().__init__(environment)
 
@@ -33,7 +33,7 @@ class Anthill (EnvObject):
 					self.area[x, y] = True
 
 	def visualize_copy(self, newenv):
-		return AnthillVisualization(newenv, self.x, self.y, self.radius, self.food)
+		return HomeVisualization(newenv, self.x, self.y, self.radius, self.food)
 
 	def update_step(self):
 		return 1000
